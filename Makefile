@@ -144,6 +144,7 @@ test-sim-multi-seed-short: runsim
 	@echo "Running short multi-seed application simulation. This may take awhile!"
 	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 10 TestFullAppSimulation
 
+test-sim: test-sim-import-export test-sim-multi-seed-short
 ###############################################################################
 ###                                Linting                                  ###
 ###############################################################################
@@ -193,3 +194,7 @@ proto-check-breaking:
 	go-mod-cache draw-deps clean build format \
 	test test-all test-build test-cover test-unit test-race \
 	test-sim-import-export \
+
+
+# Local test
+

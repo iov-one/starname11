@@ -48,6 +48,12 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 	cfg.SetBech32PrefixForValidator(app.Bech32PrefixValAddr, app.Bech32PrefixValPub)
 	cfg.SetBech32PrefixForConsensusNode(app.Bech32PrefixConsAddr, app.Bech32PrefixConsPub)
 	cfg.SetAddressVerifier(wasmtypes.VerifyAddressLen())
+
+	// TODO: verify the usage of those parameters -> package sdk ("github.com/cosmos/cosmos-sdk/types")
+	// starname configs
+	cfg.SetCoinType(app.CoinType)
+	// cfg.SetPurpose(app.FullFundraiserPath) -> verify conficts, the old implentaion was deprecated, to avoid old things at the code. Old mtehod called -> SetFullFundraiserPath
+
 	cfg.Seal()
 
 	initClientCtx := client.Context{}.
@@ -171,6 +177,16 @@ func txCommand() *cobra.Command {
 	)
 
 	app.ModuleBasics.AddTxCommands(cmd)
+	// TODO: Verify the neccessity of remove the auth and bank from tx command
+	// var cmdsToRemove []*cobra.Command
+
+	// for _, cmd := range cmd.Commands() {
+	// 	if cmd.Use == authtypes.ModuleName || cmd.Use == banktypes.ModuleName {
+	// 		cmdsToRemove = append(cmdsToRemove, cmd)
+	// 	}
+	// }
+
+	// cmd.RemoveCommand(cmdsToRemove...)
 	cmd.PersistentFlags().String(flags.FlagChainID, "", "The network chain ID")
 
 	return cmd
@@ -246,8 +262,10 @@ func (ac appCreator) appExport(
 	jailAllowedAddrs []string,
 	appOpts servertypes.AppOptions,
 ) (servertypes.ExportedApp, error) {
+
 	var wasmApp *app.WasmApp
 	homePath, ok := appOpts.Get(flags.FlagHome).(string)
+
 	if !ok || homePath == "" {
 		return servertypes.ExportedApp{}, errors.New("application home is not set")
 	}
