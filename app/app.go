@@ -870,6 +870,9 @@ func NewWasmApp(
 		}
 	}
 
+	// starname: #dont remove - newWasmApp.RegisterUpgradeHandlers
+	app.RegisterUpgradeHandlers()
+
 	return app
 }
 
