@@ -18,6 +18,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -109,12 +110,28 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	wasmappparams "github.com/CosmWasm/wasmd/app/params"
-	"github.com/CosmWasm/wasmd/x/wasm"
+
+	"github.com/CosmWasm/wasmd/x/burner"
 	wasmclient "github.com/CosmWasm/wasmd/x/wasm/client"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 
 	// unnamed import of statik for swagger UI support
 	_ "github.com/cosmos/cosmos-sdk/client/docs/statik"
+
+	// starname imports
+	"github.com/CosmWasm/wasmd/x/wasm"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	burnertypes "github.com/iov-one/starnamed/x/burner/types"
+	"github.com/iov-one/starnamed/x/configuration"
+	"github.com/iov-one/starnamed/x/escrow"
+	escrowkeeper "github.com/iov-one/starnamed/x/escrow/keeper"
+	escrowtypes "github.com/iov-one/starnamed/x/escrow/types"
+	"github.com/iov-one/starnamed/x/offchain"
+	"github.com/iov-one/starnamed/x/starname"
+
+	starnametypes "github.com/iov-one/starnamed/x/starname/types"
+
+	configurationtypes "github.com/iov-one/starnamed/x/configuration/types"
 )
 
 const appName = "StarnameApp"
@@ -207,6 +224,12 @@ var (
 		wasm.AppModuleBasic{},
 		ica.AppModuleBasic{},
 		intertx.AppModuleBasic{},
+
+		// Starname: # dont remove - BasicModule
+		configuration.AppModuleBasic{},
+		starname.AppModuleBasic{},
+		escrow.AppModuleBasic{},
+		offchain.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -220,6 +243,14 @@ var (
 		ibctransfertypes.ModuleName:    {authtypes.Minter, authtypes.Burner},
 		icatypes.ModuleName:            nil,
 		wasm.ModuleName:                {authtypes.Burner},
+
+		// Starname: # dont remove - maccPerms
+		escrowtypes.ModuleName: nil,
+		burnertypes.ModuleName: {authtypes.Burner},
+	}
+
+	allowedReceivingModules = map[string]bool{
+		burnertypes.ModuleName: true,
 	}
 )
 
@@ -279,6 +310,12 @@ type WasmApp struct {
 
 	// module configurator
 	configurator module.Configurator
+
+	// Starname: # dont remove - WasmApp
+	configKeeper   configuration.Keeper
+	starnameKeeper starname.Keeper
+	escrowKeeper   escrowkeeper.Keeper
+	cms            storetypes.CommitMultiStore // Commit multistore for history
 }
 
 // NewWasmApp returns a reference to an initialized WasmApp.
@@ -309,9 +346,18 @@ func NewWasmApp(
 		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, upgradetypes.StoreKey,
 		evidencetypes.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		feegrant.StoreKey, authzkeeper.StoreKey, wasm.StoreKey, icahosttypes.StoreKey, icacontrollertypes.StoreKey, intertxtypes.StoreKey,
+
+		// starname: #dont remove- newWasmApp.keys
+		configuration.StoreKey, starname.DomainStoreKey, escrowtypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
+
+	// starname: #dont remove - newWasmApp.cms
+	//TODO: find a cleaner way to access store history
+	//This is used for yield calculation
+	cms := store.NewCommitMultiStore(db)
+	bApp.SetCMS(cms)
 
 	app := &WasmApp{
 		BaseApp:           bApp,
@@ -322,6 +368,9 @@ func NewWasmApp(
 		keys:              keys,
 		tkeys:             tkeys,
 		memKeys:           memKeys,
+
+		// starname: #dont remove - newWasmApp.app.cms
+		cms: cms,
 	}
 
 	app.ParamsKeeper = initParamsKeeper(
@@ -417,6 +466,37 @@ func NewWasmApp(
 		appCodec,
 		homePath,
 		app.BaseApp,
+	)
+
+	// starname: #dont remove - newWasmApp keepers
+	// configuration keeper
+	app.configKeeper = configuration.NewKeeper(
+		appCodec,
+		keys[configuration.StoreKey],
+		app.getSubspace(configuration.ModuleName),
+	)
+
+	// Create the escrow keeper
+	app.escrowKeeper = escrowkeeper.NewKeeper(appCodec,
+		keys[escrowtypes.StoreKey],
+		app.getSubspace(escrowtypes.ModuleName),
+		app.AccountKeeper,
+		app.BankKeeper,
+		app.configKeeper,
+		app.ModuleAccountAddrs(),
+	)
+	// starname keeper
+	app.starnameKeeper = starname.NewKeeper(
+		appCodec,
+		keys[starname.DomainStoreKey],
+		app.configKeeper,
+		app.BankKeeper,
+		app.escrowKeeper,
+		app.AccountKeeper,
+		app.DistrKeeper,
+		app.StakingKeeper,
+		app.getSubspace(starname.ModuleName),
+		cms,
 	)
 
 	// register the staking hooks
@@ -587,6 +667,12 @@ func NewWasmApp(
 		icaModule,
 		interTxModule,
 		crisis.NewAppModule(&app.CrisisKeeper, skipGenesisInvariants), // always be last to make sure that it checks for all invariants and not only part of them
+
+		// starname: #dont remove - app.mm
+		configuration.NewAppModule(app.configKeeper),
+		starname.NewAppModule(app.starnameKeeper),
+		escrow.NewAppModule(appCodec, app.escrowKeeper),
+		burner.NewAppModule(app.BankKeeper, app.AccountKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -616,6 +702,12 @@ func NewWasmApp(
 		icatypes.ModuleName,
 		intertxtypes.ModuleName,
 		wasm.ModuleName,
+
+		// starname: #dont remove - app.mm.SetOrderBeginBlockers
+		starnametypes.ModuleName,
+		escrowtypes.ModuleName,
+		burnertypes.ModuleName,
+		configurationtypes.ModuleName,
 	)
 
 	app.mm.SetOrderEndBlockers(
@@ -641,6 +733,12 @@ func NewWasmApp(
 		icatypes.ModuleName,
 		intertxtypes.ModuleName,
 		wasm.ModuleName,
+
+		// starname: #dont remove - app.mm.SetOrderEndBlockers
+		escrowtypes.ModuleName,
+		starnametypes.ModuleName,
+		burnertypes.ModuleName,
+		configurationtypes.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -674,6 +772,11 @@ func NewWasmApp(
 		intertxtypes.ModuleName,
 		// wasm after ibc transfer
 		wasm.ModuleName,
+
+		// starname: #dont remove - app.mm.SetOrderInitGenesis
+		configuration.ModuleName,
+		starname.ModuleName,
+		escrowtypes.ModuleName,
 	)
 
 	// Uncomment if you want to set a custom migration order here.
@@ -814,7 +917,8 @@ func (app *WasmApp) LoadHeight(height int64) error {
 func (app *WasmApp) ModuleAccountAddrs() map[string]bool {
 	modAccAddrs := make(map[string]bool)
 	for acc := range maccPerms {
-		modAccAddrs[authtypes.NewModuleAddress(acc).String()] = true
+		moduleCanReceive, modulePresentInArray := allowedReceivingModules[acc]
+		modAccAddrs[authtypes.NewModuleAddress(acc).String()] = !(modulePresentInArray && moduleCanReceive)
 	}
 
 	return modAccAddrs
@@ -914,6 +1018,11 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(icahosttypes.SubModuleName)
 	paramsKeeper.Subspace(icacontrollertypes.SubModuleName)
 	paramsKeeper.Subspace(wasm.ModuleName)
+
+	// Starname: # dont remove - initParamsKeeper
+	paramsKeeper.Subspace(configuration.ModuleName)
+	paramsKeeper.Subspace(starname.ModuleName)
+	paramsKeeper.Subspace(escrowtypes.ModuleName)
 
 	return paramsKeeper
 }
