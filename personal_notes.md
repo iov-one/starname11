@@ -14,3 +14,6 @@
         -> add routes
         -> setBegginerOreder and setEndOrder 
         
+
+-> app/upgrade.go
+    -> verify if the all modules was inside of upgrade handler version map. If not add.

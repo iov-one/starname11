@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/CosmWasm/wasmd/x/wasm"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
@@ -11,17 +12,32 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	authz "github.com/cosmos/cosmos-sdk/x/authz/keeper"
-	"github.com/cosmos/cosmos-sdk/x/feegrant"
-	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	ibcconnectiontypes "github.com/cosmos/ibc-go/v3/modules/core/types"
-	burnertypes "github.com/iov-one/starnamed/x/burner/types"
-	escrowtypes "github.com/iov-one/starnamed/x/escrow/types"
-
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	configurationtypes "github.com/iov-one/starnamed/x/configuration/types"
+	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
+	authz "github.com/cosmos/cosmos-sdk/x/authz"
+	authzKeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
 
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
+	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
+	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
+	"github.com/cosmos/cosmos-sdk/x/feegrant"
+	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
+	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
+	ibchost "github.com/cosmos/ibc-go/v3/modules/core/24-host"
+	ibcconnectiontypes "github.com/cosmos/ibc-go/v3/modules/core/types"
+	intertxtypes "github.com/cosmos/interchain-accounts/x/inter-tx/types"
+	burnertypes "github.com/iov-one/starnamed/x/burner/types"
+	configurationtypes "github.com/iov-one/starnamed/x/configuration/types"
+	escrowtypes "github.com/iov-one/starnamed/x/escrow/types"
 	starnametypes "github.com/iov-one/starnamed/x/starname/types"
 )
 
@@ -214,19 +230,70 @@ func getCosmosSDKv44UpgradeHandler(app *WasmApp) upgradeData {
 			// The escrow is a newly introduced module, as well as the feegrant and authz modules so we do not include them
 		}
 
-		app.mm.SetOrderBeginBlockers(
-			authtypes.ModuleName,
-			paramstypes.ModuleName,
-			// vestingtypes.ModuleName,
-
-			// Starname modules
-			configurationtypes.ModuleName,
-			burnertypes.ModuleName,
-			starnametypes.ModuleName,
-		)
-
 		// Add the default parameters of ibc-go/03-connections in the parameter store
 		app.IBCKeeper.ConnectionKeeper.SetParams(ctx, ibcconnectiontypes.DefaultGenesisState().ConnectionGenesis.GetParams())
+
+		app.mm.SetOrderBeginBlockers(
+			upgradetypes.ModuleName,
+			capabilitytypes.ModuleName,
+			minttypes.ModuleName,
+			distrtypes.ModuleName,
+			slashingtypes.ModuleName,
+			evidencetypes.ModuleName,
+			stakingtypes.ModuleName,
+			authtypes.ModuleName,
+			banktypes.ModuleName,
+			govtypes.ModuleName,
+			crisistypes.ModuleName,
+			genutiltypes.ModuleName,
+			authz.ModuleName,
+			feegrant.ModuleName,
+			paramstypes.ModuleName,
+			vestingtypes.ModuleName,
+			// additional non simd modules
+			ibctransfertypes.ModuleName,
+			ibchost.ModuleName,
+			icatypes.ModuleName,
+			intertxtypes.ModuleName,
+			wasm.ModuleName,
+
+			// starname: #dont remove - app.mm.SetOrderBeginBlockers
+			starnametypes.ModuleName,
+			escrowtypes.ModuleName,
+			burnertypes.ModuleName,
+			configurationtypes.ModuleName,
+		)
+
+		app.mm.SetOrderEndBlockers(
+			crisistypes.ModuleName,
+			govtypes.ModuleName,
+			stakingtypes.ModuleName,
+			capabilitytypes.ModuleName,
+			authtypes.ModuleName,
+			banktypes.ModuleName,
+			distrtypes.ModuleName,
+			slashingtypes.ModuleName,
+			minttypes.ModuleName,
+			genutiltypes.ModuleName,
+			evidencetypes.ModuleName,
+			authz.ModuleName,
+			feegrant.ModuleName,
+			paramstypes.ModuleName,
+			upgradetypes.ModuleName,
+			vestingtypes.ModuleName,
+			// additional non simd modules
+			ibctransfertypes.ModuleName,
+			ibchost.ModuleName,
+			icatypes.ModuleName,
+			intertxtypes.ModuleName,
+			wasm.ModuleName,
+
+			// starname: #dont remove - app.mm.SetOrderEndBlockers
+			escrowtypes.ModuleName,
+			starnametypes.ModuleName,
+			burnertypes.ModuleName,
+			configurationtypes.ModuleName,
+		)
 
 		return app.mm.RunMigrations(ctx, app.configurator, fromVersionMap)
 	}
@@ -234,7 +301,7 @@ func getCosmosSDKv44UpgradeHandler(app *WasmApp) upgradeData {
 	// Set the store loader for the 3 new modules : authz, feegrant and escrow
 	setStoreLoader := func(app *WasmApp, info storetypes.UpgradeInfo) {
 		storeUpgrades := storetypes.StoreUpgrades{
-			Added: []string{authz.StoreKey, feegrant.StoreKey, escrowtypes.StoreKey},
+			Added: []string{authzKeeper.StoreKey, feegrant.StoreKey, escrowtypes.StoreKey},
 		}
 
 		// configure store loader that checks if version == upgradeHeight and applies store upgrades

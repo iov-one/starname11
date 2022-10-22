@@ -468,6 +468,9 @@ func NewWasmApp(
 		app.BaseApp,
 	)
 
+	// starname: #dont remove - newWasmApp.RegisterUpgradeHandlers
+	app.RegisterUpgradeHandlers()
+
 	// starname: #dont remove - newWasmApp keepers
 	// configuration keeper
 	app.configKeeper = configuration.NewKeeper(
@@ -777,6 +780,7 @@ func NewWasmApp(
 		configuration.ModuleName,
 		starname.ModuleName,
 		escrowtypes.ModuleName,
+		burnertypes.ModuleName,
 	)
 
 	// Uncomment if you want to set a custom migration order here.
@@ -869,9 +873,6 @@ func NewWasmApp(
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
 		}
 	}
-
-	// starname: #dont remove - newWasmApp.RegisterUpgradeHandlers
-	app.RegisterUpgradeHandlers()
 
 	return app
 }
