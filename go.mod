@@ -8,7 +8,6 @@ require (
 	github.com/cosmos/cosmos-sdk v0.45.9
 	github.com/cosmos/gogoproto v1.4.2
 	github.com/cosmos/iavl v0.19.3
-	github.com/cosmos/ibc-go v1.5.0
 	github.com/cosmos/ibc-go/v3 v3.3.0
 	github.com/cosmos/interchain-accounts v0.1.0
 	github.com/dvsekhvalnov/jose2go v1.5.0
@@ -18,7 +17,7 @@ require (
 	github.com/google/gofuzz v1.2.0
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
-	github.com/iov-one/cosmos-sdk-crud v0.3.0
+	github.com/iov-one/cosmos-sdk-crud v0.4.0-rc
 	github.com/iov-one/starnamed v0.0.0-00010101000000-000000000000
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.13.0
