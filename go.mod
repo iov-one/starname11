@@ -1,8 +1,9 @@
-module github.com/CosmWasm/wasmd
+module github.com/iov-one/starnamed
 
 go 1.18
 
 require (
+	github.com/CosmWasm/wasmd v0.0.0-00010101000000-000000000000
 	github.com/CosmWasm/wasmvm v1.1.1
 	github.com/cosmos/cosmos-proto v1.0.0-alpha7
 	github.com/cosmos/cosmos-sdk v0.45.9
@@ -18,7 +19,6 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/iov-one/cosmos-sdk-crud v0.4.0-rc
-	github.com/iov-one/starnamed v0.0.0-00010101000000-000000000000
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.13.0
 	github.com/rakyll/statik v0.1.7
@@ -131,6 +131,7 @@ require (
 )
 
 replace (
+	github.com/CosmWasm/wasmd => ./
 	github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
 	// Fix upstream GHSA-h395-qcrw-5vmq vulnerability.
 	// TODO Remove it: https://github.com/cosmos/cosmos-sdk/issues/10409
@@ -138,6 +139,5 @@ replace (
 	// latest grpc doesn't work with with our modified proto compiler, so we need to enforce
 	// the following version across all dependencies.
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
-	github.com/iov-one/starnamed => ./
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 )
