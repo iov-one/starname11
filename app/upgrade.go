@@ -30,11 +30,9 @@ import (
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	ibchost "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	ibcconnectiontypes "github.com/cosmos/ibc-go/v3/modules/core/types"
-	intertxtypes "github.com/cosmos/interchain-accounts/x/inter-tx/types"
 	burnertypes "github.com/iov-one/starnamed/x/burner/types"
 	configurationtypes "github.com/iov-one/starnamed/x/configuration/types"
 	escrowtypes "github.com/iov-one/starnamed/x/escrow/types"
@@ -196,12 +194,10 @@ func getIOVMainnetIBC2UpgradeHandler(app *WasmApp) upgradeData {
 }
 
 func getCosmosSDKv44UpgradeHandler(app *WasmApp) upgradeData {
-	const planName = "cosmos-sdk-v0.44-upgrade"
+	const planName = "starname-version-11"
 	handler := func(ctx sdk.Context, _ upgradetypes.Plan, _ module.VersionMap) (module.VersionMap, error) {
-		// Overwrite the version map :
-		// Set up modules that were already present in previous version (but were not registered as the version map didn't
-		// exist prior to v0.44.3). All those modules are at there first registered version (1).
-		// If we keep the version map as is (empty) the upgrade handler will use the DefaultGenesis state for those modules
+
+		// Set the Version MAP
 		fromVersionMap := map[string]uint64{
 			// Cosmos sdk modules
 			"auth":         1,
@@ -226,11 +222,10 @@ func getCosmosSDKv44UpgradeHandler(app *WasmApp) upgradeData {
 			"configuration": 1, // the configuration module will be updated to version 2 (adding the escrow conf)
 			"starname":      1,
 			"wasm":          1,
-
-			// The escrow is a newly introduced module, as well as the feegrant and authz modules so we do not include them
 		}
 
 		// Add the default parameters of ibc-go/03-connections in the parameter store
+		// Migration of IBC: from SDK to v1
 		app.IBCKeeper.ConnectionKeeper.SetParams(ctx, ibcconnectiontypes.DefaultGenesisState().ConnectionGenesis.GetParams())
 
 		app.mm.SetOrderBeginBlockers(
@@ -253,8 +248,8 @@ func getCosmosSDKv44UpgradeHandler(app *WasmApp) upgradeData {
 			// additional non simd modules
 			ibctransfertypes.ModuleName,
 			ibchost.ModuleName,
-			icatypes.ModuleName,
-			intertxtypes.ModuleName,
+			// icatypes.ModuleName, 		//  starname: #dont remove - removing the ICA module and keepers
+			// intertxtypes.ModuleName,		//  starname: #dont remove - removing the ICA module and keepers
 			wasm.ModuleName,
 
 			// starname: #dont remove - app.mm.SetOrderBeginBlockers
@@ -284,8 +279,8 @@ func getCosmosSDKv44UpgradeHandler(app *WasmApp) upgradeData {
 			// additional non simd modules
 			ibctransfertypes.ModuleName,
 			ibchost.ModuleName,
-			icatypes.ModuleName,
-			intertxtypes.ModuleName,
+			// icatypes.ModuleName,		//  starname: #dont remove - removing the ICA module and keepers
+			// intertxtypes.ModuleName,	//  starname: #dont remove - removing the ICA module and keepers
 			wasm.ModuleName,
 
 			// starname: #dont remove - app.mm.SetOrderEndBlockers

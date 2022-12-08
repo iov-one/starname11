@@ -75,9 +75,6 @@ import (
 	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
 	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	icacontrollertypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/controller/types"
-	icahosttypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/host/types"
-	icatypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
 	transfer "github.com/cosmos/ibc-go/v3/modules/apps/transfer"
 	ibctransferkeeper "github.com/cosmos/ibc-go/v3/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
@@ -92,7 +89,6 @@ import (
 	// Note: please do your research before using this in production app, this is a demo and not an officially
 	// supported IBC team implementation. It has no known issues, but do your own research before using it.
 
-	intertxtypes "github.com/cosmos/interchain-accounts/x/inter-tx/types"
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
 	"github.com/spf13/cast"
@@ -698,8 +694,8 @@ func NewWasmApp(
 		// additional non simd modules
 		ibctransfertypes.ModuleName,
 		ibchost.ModuleName,
-		icatypes.ModuleName,
-		intertxtypes.ModuleName,
+		// icatypes.ModuleName,		// starname: #dont remove - removing the ICA module and keepers
+		// intertxtypes.ModuleName,	// starname: #dont remove - removing the ICA module and keepers
 		wasm.ModuleName,
 
 		// starname: #dont remove - app.mm.SetOrderBeginBlockers
@@ -729,8 +725,8 @@ func NewWasmApp(
 		// additional non simd modules
 		ibctransfertypes.ModuleName,
 		ibchost.ModuleName,
-		icatypes.ModuleName,
-		intertxtypes.ModuleName,
+		// icatypes.ModuleName,		// starname: #dont remove - removing the ICA module and keepers
+		// intertxtypes.ModuleName,	// starname: #dont remove - removing the ICA module and keepers
 		wasm.ModuleName,
 
 		// starname: #dont remove - app.mm.SetOrderEndBlockers
@@ -767,8 +763,8 @@ func NewWasmApp(
 		// additional non simd modules
 		ibctransfertypes.ModuleName,
 		ibchost.ModuleName,
-		icatypes.ModuleName,
-		intertxtypes.ModuleName,
+		// icatypes.ModuleName,		// starname: #dont remove - removing the ICA module and keepers
+		// intertxtypes.ModuleName,	// starname: #dont remove - removing the ICA module and keepers
 		// wasm after ibc transfer
 		wasm.ModuleName,
 
@@ -854,9 +850,9 @@ func NewWasmApp(
 	app.ScopedIBCKeeper = scopedIBCKeeper
 	app.ScopedTransferKeeper = scopedTransferKeeper
 	app.ScopedWasmKeeper = scopedWasmKeeper
-	// app.ScopedICAHostKeeper = scopedICAHostKeeper	// starname: #dont remove - removing the ICA module and keepers
-	// app.ScopedICAControllerKeeper = scopedICAControllerKeeper
-	// app.ScopedInterTxKeeper = scopedInterTxKeeper
+	// app.ScopedICAHostKeeper = scopedICAHostKeeper				// starname: #dont remove - removing the ICA module and keepers
+	// app.ScopedICAControllerKeeper = scopedICAControllerKeeper	// starname: #dont remove - removing the ICA module and keepers
+	// app.ScopedInterTxKeeper = scopedInterTxKeeper				// starname: #dont remove - removing the ICA module and keepers
 
 	if loadLatest {
 		if err := app.LoadLatestVersion(); err != nil {
@@ -1015,8 +1011,8 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(crisistypes.ModuleName)
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
 	paramsKeeper.Subspace(ibchost.ModuleName)
-	paramsKeeper.Subspace(icahosttypes.SubModuleName)
-	paramsKeeper.Subspace(icacontrollertypes.SubModuleName)
+	// paramsKeeper.Subspace(icahosttypes.SubModuleName)		// starname: #dont remove - removing the ICA module and keepers
+	// paramsKeeper.Subspace(icacontrollertypes.SubModuleName)	// starname: #dont remove - removing the ICA module and keepers
 	paramsKeeper.Subspace(wasm.ModuleName)
 
 	// Starname: # dont remove - initParamsKeeper
